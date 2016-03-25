@@ -14,6 +14,7 @@ var KEY_LEFT = 37;
 var KEY_UP = 38;
 var KEY_RIGHT = 39;
 var KEY_DOWN = 40;
+var KEY_SMILES = [49, 50, 51, 52, 53, 54, 55, 56, 57];
 var borderDraw = false;
 var animLoopHandle;
 var spin = -Math.PI;
@@ -21,6 +22,8 @@ var enemySpin = -Math.PI;
 var mobile = false;
 var foodSides = 10;
 var virusSides = 20;
+
+var smileIndex = -1;
 
 var debug = function(args) {
     if (console && console.log) {
@@ -297,7 +300,8 @@ var chat = new ChatClient();
 
 // Chat command callback functions.
 function keyInput(event) {
-	var key = event.which || event.keyCode;
+	var key = event.which || event.keyCode,
+        checkSmileIndex = KEY_SMILES.indexOf(key);
 	if (key === KEY_FIREFOOD && reenviar) {
         socket.emit('1');
         reenviar = false;
@@ -309,6 +313,15 @@ function keyInput(event) {
     }
     else if (key === KEY_CHAT) {
         document.getElementById('chatInput').focus();
+    }
+    else if (checkSmileIndex !== -1) {
+        if (checkSmileIndex === smileIndex) {
+            return;
+        }
+        smileIndex = checkSmileIndex + 1;
+        setTimeout(function() {
+            smileIndex = -1;
+        }, 2000);
     }
 }
 
@@ -690,6 +703,10 @@ function drawPlayers(order) {
         y: player.y - (screenHeight / 2)
     };
 
+    var drawSmile = function(smile, x, y){
+        graph.drawImage(smile, x, y);
+    };
+
     for(var z=0; z<order.length; z++)
     {
         var userCurrent = users[order[z].nCell];
@@ -776,6 +793,12 @@ function drawPlayers(order) {
             if(nameCell.length === 0) fontSize = 0;
             graph.strokeText(Math.round(cellCurrent.mass), circle.x, circle.y+fontSize);
             graph.fillText(Math.round(cellCurrent.mass), circle.x, circle.y+fontSize);
+        }
+
+        if (smileIndex !== -1) {
+            var smile = new Image();
+            smile.src = 'img/smile' + smileIndex + '.png';
+            smile.onload = drawSmile(smile, circle.x - 32, circle.y - cellCurrent.radius - 64 - 5);
         }
     }
 }
