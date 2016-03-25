@@ -24,6 +24,8 @@ var foodSides = 10;
 var virusSides = 20;
 
 var smileIndex = -1;
+var smileTimeout = null;
+var smileDuration = 2000;
 
 var debug = function(args) {
     if (console && console.log) {
@@ -315,13 +317,14 @@ function keyInput(event) {
         document.getElementById('chatInput').focus();
     }
     else if (checkSmileIndex !== -1) {
-        if (checkSmileIndex === smileIndex) {
+        if (checkSmileIndex === smileIndex || smileTimeout) {
             return;
         }
         smileIndex = checkSmileIndex + 1;
-        setTimeout(function() {
+        smileTimeout = setTimeout(function() {
             smileIndex = -1;
-        }, 2000);
+            smileTimeout = null;
+        }, smileDuration);
     }
 }
 
