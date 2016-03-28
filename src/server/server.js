@@ -17,7 +17,6 @@ var util = require('./lib/util');
 var quadtree= require('../../quadtree');
 
 var args = {x : 0, y : 0, h : c.gameHeight, w : c.gameWidth, maxChildren : 1, maxDepth : 5};
-console.log(args);
 
 var tree = quadtree.QUAD.init(args);
 
@@ -218,6 +217,36 @@ function balanceMass() {
     }
 }
 
+function balanceResources() {
+    var totalMass = food.length * c.foodMass +
+        users
+            .map(function(u) {return u.massTotal; })
+            .reduce(function(pu,cu) { return pu+cu;}, 0);
+
+    var massDiff = c.gameMass - totalMass;
+    var maxFoodDiff = c.maxFood - food.length;
+    var foodDiff = parseInt(massDiff / c.foodMass) - maxFoodDiff;
+    var foodToAdd = Math.min(foodDiff, maxFoodDiff);
+    var foodToRemove = -Math.max(foodDiff, maxFoodDiff);
+
+    if (foodToAdd > 0) {
+        //console.log('[DEBUG] Adding ' + foodToAdd + ' food to level!');
+        addFood(foodToAdd);
+        //console.log('[DEBUG] Mass rebalanced!');
+    }
+    else if (foodToRemove > 0) {
+        //console.log('[DEBUG] Removing ' + foodToRemove + ' food from level!');
+        removeFood(foodToRemove);
+        //console.log('[DEBUG] Mass rebalanced!');
+    }
+
+    var virusToAdd = c.maxVirus - virus.length;
+
+    if (virusToAdd > 0) {
+        addVirus(virusToAdd);
+    }
+}
+
 io.on('connection', function (socket) {
     console.log('A user connected!', socket.handshake.query.type);
 
@@ -232,7 +261,8 @@ io.on('connection', function (socket) {
             mass: c.defaultPlayerMass,
             x: position.x,
             y: position.y,
-            radius: radius
+            radius: radius,
+            smileIndex: -1
         }];
         massTotal = c.defaultPlayerMass;
     }
@@ -277,7 +307,8 @@ io.on('connection', function (socket) {
                     mass: c.defaultPlayerMass,
                     x: position.x,
                     y: position.y,
-                    radius: radius
+                    radius: radius,
+                    smileIndex: -1
                 }];
                 player.massTotal = c.defaultPlayerMass;
             }
@@ -454,6 +485,13 @@ io.on('connection', function (socket) {
             currentPlayer.lastSplit = new Date().getTime();
         }
     });
+
+    socket.on('smile', function(smileIndex) {
+        currentPlayer.smileIndex = smileIndex;
+        currentPlayer.cells.forEach(function(cell) {
+            cell.smileIndex = smileIndex;
+        });
+    });
 });
 
 function tickPlayer(currentPlayer) {
@@ -627,6 +665,7 @@ function gameloop() {
         }
     }
     balanceMass();
+    balanceResources();
 }
 
 function sendUpdates() {

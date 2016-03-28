@@ -321,9 +321,11 @@ function keyInput(event) {
             return;
         }
         smileIndex = checkSmileIndex + 1;
+        socket.emit('smile', smileIndex);
         smileTimeout = setTimeout(function() {
             smileIndex = -1;
             smileTimeout = null;
+            socket.emit('smile', -1);
         }, smileDuration);
     }
 }
@@ -798,9 +800,9 @@ function drawPlayers(order) {
             graph.fillText(Math.round(cellCurrent.mass), circle.x, circle.y+fontSize);
         }
 
-        if (smileIndex !== -1) {
+        if (cellCurrent.smileIndex !== -1) {
             var smile = new Image();
-            smile.src = 'img/smile' + smileIndex + '.png';
+            smile.src = 'img/smile' + cellCurrent.smileIndex + '.png';
             smile.onload = drawSmile(smile, circle.x - 32, circle.y - cellCurrent.radius - 64 - 5);
         }
     }
@@ -936,7 +938,8 @@ function gameLoop() {
                     orderMass.push({
                         nCell: i,
                         nDiv: j,
-                        mass: users[i].cells[j].mass
+                        mass: users[i].cells[j].mass,
+                        smileIndex: users[i].cells[j].smileIndex
                     });
                 }
             }
