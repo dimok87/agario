@@ -14,12 +14,18 @@
         },
 		"splitMass": 180
 	},
+    "resource": {
+        "fill": "#dd4b39",
+        "stroke": "#dd4b39",
+        "strokeWidth": 20
+    },
     "gameWidth": 5000,
     "gameHeight": 5000,
     "adminPass": "DEFAULT",
     "gameMass": 20000,
     "maxFood": 1000,
     "maxVirus": 50,
+    "maxResource": 100,
     "slowBase": 4.5,
     "logChat": 0,
     "networkUpdateFactor": 40,

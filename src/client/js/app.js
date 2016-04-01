@@ -22,6 +22,7 @@ var enemySpin = -Math.PI;
 var mobile = false;
 var foodSides = 10;
 var virusSides = 20;
+var resourceSides = 20;
 
 var smileIndex = -1;
 var smileTimeout = null;
@@ -151,6 +152,7 @@ var player = {
 
 var foods = [];
 var viruses = [];
+var resources = [];
 var fireFood = [];
 var users = [];
 var leaderboard = [];
@@ -608,7 +610,7 @@ function setupSocket(socket) {
     });
 
     // Handle movement.
-    socket.on('serverTellPlayerMove', function (userData, foodsList, massList, virusList) {
+    socket.on('serverTellPlayerMove', function (userData, foodsList, massList, virusList, resourceList) {
         var playerData;
         for(var i =0; i< userData.length; i++) {
             if(typeof(userData[i].id) == "undefined") {
@@ -632,6 +634,7 @@ function setupSocket(socket) {
         foods = foodsList;
         viruses = virusList;
         fireFood = massList;
+        resources = resourceList;
     });
 
     // Death.
@@ -693,6 +696,13 @@ function drawVirus(virus) {
     graph.fillStyle = virus.fill;
     graph.lineWidth = virus.strokeWidth;
     drawCircle(virus.x - player.x + screenWidth / 2, virus.y - player.y + screenHeight / 2, virus.radius, virusSides);
+}
+
+function drawResource(resource) {
+    graph.strokeStyle = resource.stroke;
+    graph.fillStyle = resource.fill;
+    graph.lineWidth = resource.strokeWidth;
+    drawCircle(resource.x - player.x + screenWidth / 2, resource.y - player.y + screenHeight / 2, resource.radius, resourceSides);
 }
 
 function drawFireFood(mass) {
@@ -928,6 +938,7 @@ function gameLoop() {
             foods.forEach(drawFood);
             fireFood.forEach(drawFireFood);
             viruses.forEach(drawVirus);
+            resources.forEach(drawResource);
             
             if (borderDraw) {
                 drawborder();

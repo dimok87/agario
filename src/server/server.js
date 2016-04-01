@@ -24,6 +24,7 @@ var users = [];
 var massFood = [];
 var food = [];
 var virus = [];
+var resource = [];
 var sockets = {};
 
 var leaderboard = [];
@@ -66,6 +67,22 @@ function addVirus(toAdd) {
             fill: c.virus.fill,
             stroke: c.virus.stroke,
             strokeWidth: c.virus.strokeWidth
+        });
+    }
+}
+
+function addResource(toAdd) {
+    while (toAdd--) {
+        var radius = 20;
+        var position = util.randomPosition(radius);
+        resource.push({
+            id: ((new Date()).getTime() + '' + resource.length) >>> 0,
+            x: position.x,
+            y: position.y,
+            radius: radius,
+            fill: c.resource.fill,
+            stroke: c.resource.stroke,
+            strokeWidth: c.resource.strokeWidth
         });
     }
 }
@@ -217,33 +234,11 @@ function balanceMass() {
     }
 }
 
-function balanceResources() {
-    var totalMass = food.length * c.foodMass +
-        users
-            .map(function(u) {return u.massTotal; })
-            .reduce(function(pu,cu) { return pu+cu;}, 0);
+function balanceResource() {
+    var resourceToAdd = c.maxResource - resource.length;
 
-    var massDiff = c.gameMass - totalMass;
-    var maxFoodDiff = c.maxFood - food.length;
-    var foodDiff = parseInt(massDiff / c.foodMass) - maxFoodDiff;
-    var foodToAdd = Math.min(foodDiff, maxFoodDiff);
-    var foodToRemove = -Math.max(foodDiff, maxFoodDiff);
-
-    if (foodToAdd > 0) {
-        //console.log('[DEBUG] Adding ' + foodToAdd + ' food to level!');
-        addFood(foodToAdd);
-        //console.log('[DEBUG] Mass rebalanced!');
-    }
-    else if (foodToRemove > 0) {
-        //console.log('[DEBUG] Removing ' + foodToRemove + ' food from level!');
-        removeFood(foodToRemove);
-        //console.log('[DEBUG] Mass rebalanced!');
-    }
-
-    var virusToAdd = c.maxVirus - virus.length;
-
-    if (virusToAdd > 0) {
-        addVirus(virusToAdd);
+    if (resourceToAdd > 0) {
+        addResource(resourceToAdd);
     }
 }
 
@@ -511,6 +506,11 @@ function tickPlayer(currentPlayer) {
         food.splice(f, 1);
     }
 
+    function deleteResource(f) {
+        resource[f] = {};
+        resource.splice(f, 1);
+    }
+
     function eatMass(m) {
         if(SAT.pointInCircle(new V(m.x, m.y), playerCircle)){
             if(m.id == currentPlayer.id && m.speed > 0 && z == m.num)
@@ -577,6 +577,11 @@ function tickPlayer(currentPlayer) {
             .reduce( function(a, b, c) { return b ? a.concat(c) : a; }, []);
 
         foodEaten.forEach(deleteFood);
+
+        var resourceEaten = resource.map(funcFood)
+            .reduce( function(a, b, c) { return b ? a.concat(c) : a; }, []);
+
+        resourceEaten.forEach(deleteResource);
 
         var massEaten = massFood.map(eatMass)
             .reduce(function(a, b, c) {return b ? a.concat(c) : a; }, []);
@@ -665,7 +670,7 @@ function gameloop() {
         }
     }
     balanceMass();
-    balanceResources();
+    balanceResource();
 }
 
 function sendUpdates() {
@@ -686,6 +691,17 @@ function sendUpdates() {
             .filter(function(f) { return f; });
 
         var visibleVirus  = virus
+            .map(function(f) {
+                if ( f.x > u.x - u.screenWidth/2 - f.radius &&
+                    f.x < u.x + u.screenWidth/2 + f.radius &&
+                    f.y > u.y - u.screenHeight/2 - f.radius &&
+                    f.y < u.y + u.screenHeight/2 + f.radius) {
+                    return f;
+                }
+            })
+            .filter(function(f) { return f; });
+
+        var visibleResource  = resource
             .map(function(f) {
                 if ( f.x > u.x - u.screenWidth/2 - f.radius &&
                     f.x < u.x + u.screenWidth/2 + f.radius &&
@@ -741,7 +757,7 @@ function sendUpdates() {
             })
             .filter(function(f) { return f; });
 
-        sockets[u.id].emit('serverTellPlayerMove', visibleCells, visibleFood, visibleMass, visibleVirus);
+        sockets[u.id].emit('serverTellPlayerMove', visibleCells, visibleFood, visibleMass, visibleVirus, visibleResource);
         if (leaderboardChanged) {
             sockets[u.id].emit('leaderboard', {
                 players: users.length,
