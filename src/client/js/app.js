@@ -47,10 +47,8 @@ function startGame(type) {
 
     document.getElementById('startMenuWrapper').style.maxHeight = '0px';
     document.getElementById('gameAreaWrapper').style.opacity = 1;
-    if (!socket) {
-        socket = io({query:"type=" + type});
-        setupSocket(socket);
-    }
+    socket = io({query:"type=" + type});
+    setupSocket(socket);
     if (!animLoopHandle)
         animloop();
     socket.emit('respawn');
@@ -64,6 +62,15 @@ function validNick() {
 }
 
 window.onload = function() {
+
+    if (!socket) {
+        socket = io({query:"type=load"});
+        socket.emit('loaded', 'DOM is loaded');
+    }
+
+    socket.on('registration', function (data) {
+        console.log(data.user);
+    });
 
     var btn = document.getElementById('startButton'),
         btnS = document.getElementById('spectateButton'),
@@ -568,6 +575,7 @@ function setupSocket(socket) {
     });
 
     socket.on('playerDied', function (data) {
+        console.log(player);
         chat.addSystemLine('{GAME} - <b>' + (data.name.length < 1 ? 'An unnamed cell' : data.name) + '</b> was eaten.');
     });
 
@@ -629,6 +637,7 @@ function setupSocket(socket) {
             player.cells = playerData.cells;
             player.xoffset = isNaN(xoffset) ? 0 : xoffset;
             player.yoffset = isNaN(yoffset) ? 0 : yoffset;
+            player.statistics = playerData.statistics;
         }
         users = userData;
         foods = foodsList;

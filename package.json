@@ -47,6 +47,8 @@
     "gulp-util": "^3.0.6",
     "jshint": "^2.7.0",
     "mocha": "^2.2.5",
+    "mongodb": "^2.1.14",
+    "monk": "^1.0.1",
     "node-libs-browser": "^0.5.2",
     "nodemon": "^1.2.1",
     "sat": "^0.5.0",

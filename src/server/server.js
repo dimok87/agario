@@ -7,6 +7,10 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var SAT = require('sat');
 
+var mongo = require('mongodb');
+var monk = require('monk');
+var db = monk('localhost:27017/agario');
+
 // Import game settings.
 var c = require('../../config.json');
 
@@ -34,6 +38,30 @@ var V = SAT.Vector;
 var C = SAT.Circle;
 
 var initMassLog = util.log(c.defaultPlayerMass, c.slowBase);
+
+var vkUser = {};
+
+var collection = db.get('usercollection');
+collection.find({},{},function(e,docs){
+    console.log(docs);
+});
+
+app.get('/', function(req, res, next) {
+    vkUser.username = req.query.id;
+    vkUser.email = req.query.id;
+
+    //console.log(vkUser.username);
+    /*collection.insert(vkUser, function (err, doc) {
+        if (err) {
+            // If it failed, return error
+            res.send("There was a problem adding the information to the database.");
+        }
+        else {
+            console.log("OK");
+        }
+    });*/
+    next();
+});
 
 app.use(express.static(__dirname + '/../client'));
 
@@ -243,6 +271,15 @@ function balanceResource() {
 }
 
 io.on('connection', function (socket) {
+
+    if (socket.handshake.query.type == 'load') {
+        socket.on('loaded', function () {
+            console.log("You are loaded");
+            socket.emit('registration', {user: vkUser});
+        });
+        return;
+    }
+
     console.log('A user connected!', socket.handshake.query.type);
 
     var type = socket.handshake.query.type;
@@ -268,6 +305,9 @@ io.on('connection', function (socket) {
         y: position.y,
         cells: cells,
         massTotal: massTotal,
+        statistics: {
+          cellsEaten: 0
+        },
         hue: Math.round(Math.random() * 360),
         type: type,
         lastHeartbeat: new Date().getTime(),
@@ -306,10 +346,16 @@ io.on('connection', function (socket) {
                     smileIndex: -1
                 }];
                 player.massTotal = c.defaultPlayerMass;
+                player.statistics = {
+                    cellsEaten: 0
+                };
             }
             else {
                  player.cells = [];
                  player.massTotal = 0;
+                 player.statistics = {
+                     cellsEaten: 0
+                 };
             }
             player.hue = Math.round(Math.random() * 360);
             currentPlayer = player;
@@ -546,6 +592,7 @@ function tickPlayer(currentPlayer) {
 
     function collisionCheck(collision) {
         if (collision.aUser.mass > collision.bUser.mass * 1.1  && collision.aUser.radius > Math.sqrt(Math.pow(collision.aUser.x - collision.bUser.x, 2) + Math.pow(collision.aUser.y - collision.bUser.y, 2))*1.75) {
+            // A user is killing B user or eat a cell from him
             console.log('[DEBUG] Killing user: ' + collision.bUser.id);
             console.log('[DEBUG] Collision info:');
             console.log(collision);
@@ -553,15 +600,18 @@ function tickPlayer(currentPlayer) {
             var numUser = util.findIndex(users, collision.bUser.id);
             if (numUser > -1) {
                 if(users[numUser].cells.length > 1) {
+                    // if several cells of user
                     users[numUser].massTotal -= collision.bUser.mass;
                     users[numUser].cells.splice(collision.bUser.num, 1);
                 } else {
+                    //if there were only one cell of user
                     users.splice(numUser, 1);
                     io.emit('playerDied', { name: collision.bUser.name });
                     sockets[collision.bUser.id].emit('RIP');
                 }
             }
             currentPlayer.massTotal += collision.bUser.mass;
+            currentPlayer.statistics.cellsEaten++;
             collision.aUser.mass += collision.bUser.mass;
         }
     }
@@ -739,6 +789,7 @@ function sendUpdates() {
                                 y: f.y,
                                 cells: f.cells,
                                 massTotal: Math.round(f.massTotal),
+                                statistics: f.statistics,
                                 hue: f.hue,
                                 name: f.name
                             };
@@ -749,6 +800,7 @@ function sendUpdates() {
                                 y: f.y,
                                 cells: f.cells,
                                 massTotal: Math.round(f.massTotal),
+                                statistics: f.statistics,
                                 hue: f.hue,
                             };
                         }
